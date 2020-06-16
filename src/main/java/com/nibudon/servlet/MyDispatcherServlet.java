@@ -13,9 +13,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.*;
 
@@ -208,9 +210,16 @@ public class MyDispatcherServlet extends HttpServlet {
         Map<String,String []> params = req.getParameterMap();
 
         Method method = this.handllerMapping.get(url);
+        Parameter []parames = method.getParameters();
+        System.out.println(parames[0].getName());
+        System.out.println(Arrays.toString(parames));
 
         String beanName = toLowerFirstCase(method.getDeclaringClass().getSimpleName());
-        method.invoke(ioc.get(beanName),req,resp,params.get("name")[0]);
+        Object o = method.invoke(ioc.get(beanName),req,resp);
+        Writer writer = resp.getWriter();
+        writer.write(o.toString());
+        writer.flush();
+        writer.close();
     }
 
     /*@Override
