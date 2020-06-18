@@ -25,11 +25,11 @@ public class MyDispatcherServlet extends HttpServlet {
 
     private Properties contextConfig = new Properties();
 
-    private Map<String,Object> ioc = new HashMap<String,Object>();
+    private Map<String, Object> ioc = new HashMap<String, Object>();
 
     private List<String> classNames = new ArrayList<String>();
 
-    private Map<String,Method> handllerMapping = new HashMap<String,Method>();
+    private Map<String, Method> handllerMapping = new HashMap<String, Method>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -44,7 +44,7 @@ public class MyDispatcherServlet extends HttpServlet {
 
         //4，完成依赖注入
         doAutoWired();
-        
+
         //5，初始化HandllerMapping
         initHandllerMapping();
 
@@ -53,47 +53,57 @@ public class MyDispatcherServlet extends HttpServlet {
     }
 
     private void initHandllerMapping() {
-        if(ioc == null){return;}
+        if (ioc == null) {
+            return;
+        }
         for (Map.Entry<String, Object> entry : ioc.entrySet()) {
             Class<?> clazz = entry.getValue().getClass();
-            if(!clazz.isAnnotationPresent(MyController.class)){continue;}
+            if (!clazz.isAnnotationPresent(MyController.class)) {
+                continue;
+            }
 
             String baseUrl = "";
-            if(clazz.isAnnotationPresent(MyRequestMapping.class)){
+            if (clazz.isAnnotationPresent(MyRequestMapping.class)) {
                 MyRequestMapping requestMapping = clazz.getAnnotation(MyRequestMapping.class);
                 baseUrl = requestMapping.value();
             }
 
             for (Method method : clazz.getMethods()) {
-                if(!method.isAnnotationPresent(MyRequestMapping.class)){continue;}
+                if (!method.isAnnotationPresent(MyRequestMapping.class)) {
+                    continue;
+                }
 
                 MyRequestMapping requestMapping = method.getAnnotation(MyRequestMapping.class);
                 String url = requestMapping.value();
-                url = ("/" + baseUrl + "/" + url).replaceAll("/+","/");
-                handllerMapping.put(url,method);
-                System.out.println("Maped : " + url +"," +method);
+                url = ("/" + baseUrl + "/" + url).replaceAll("/+", "/");
+                handllerMapping.put(url, method);
+                System.out.println("Maped : " + url + "," + method);
             }
         }
     }
 
     private void doAutoWired() {
-        if(ioc == null) {return;}
+        if (ioc == null) {
+            return;
+        }
         for (Map.Entry<String, Object> entry : ioc.entrySet()) {
             //包括了私有参数
-            Field [] fields = entry.getValue().getClass().getDeclaredFields();
+            Field[] fields = entry.getValue().getClass().getDeclaredFields();
             for (Field field : fields) {
-                if(!field.isAnnotationPresent(MyAutoWired.class)){continue;}
+                if (!field.isAnnotationPresent(MyAutoWired.class)) {
+                    continue;
+                }
 
                 MyAutoWired autoWired = field.getAnnotation(MyAutoWired.class);
 
                 String beanName = autoWired.name();
-                if("".equals(beanName)){
+                if ("".equals(beanName)) {
                     beanName = field.getType().getName();
                 }
                 //只要加了注解，私有的属性一样可以被注入
                 field.setAccessible(true);
                 try {
-                    field.set(entry.getValue(),ioc.get(beanName));
+                    field.set(entry.getValue(), ioc.get(beanName));
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -103,46 +113,46 @@ public class MyDispatcherServlet extends HttpServlet {
     }
 
     private void doInstance() {
-        if(classNames == null){
+        if (classNames == null) {
             return;
         }
         try {
             for (String className : classNames) {
                 //如果是自定义注解，需要获取注解的值
                 Class<?> clazz = Class.forName(className);
-                if(clazz.isAnnotationPresent(MyController.class)){
+                if (clazz.isAnnotationPresent(MyController.class)) {
                     String beanName = toLowerFirstCase(clazz.getSimpleName());
                     Object instance = clazz.newInstance();
-                    ioc.put(beanName,instance);
-                } else if(clazz.isAnnotationPresent(Service.class)){
+                    ioc.put(beanName, instance);
+                } else if (clazz.isAnnotationPresent(Service.class)) {
                     //1，默认类名首字母小写
                     String beanName = toLowerFirstCase(clazz.getSimpleName());
                     //2，自定义命名要自定义命名优先
                     Service service = clazz.getAnnotation(Service.class);
-                    if(!"".equals(service.name())){
+                    if (!"".equals(service.name())) {
                         beanName = service.name();
                     }
                     Object instance = clazz.newInstance();
-                    ioc.put(beanName,instance);
+                    ioc.put(beanName, instance);
                     //3，如果是接口，创建的是实现类的对象
                     for (Class<?> i : clazz.getInterfaces()) {
-                        if(ioc.containsKey(i.getName())){
+                        if (ioc.containsKey(i.getName())) {
                             throw new Exception("the beanName is exist!");
                         }
-                        ioc.put(i.getName(),instance);
+                        ioc.put(i.getName(), instance);
                     }
-                } else{
+                } else {
                     continue;
                 }
             }
-        } catch (Exception e){
+        } catch (Exception e) {
 
         }
 
     }
 
     private String toLowerFirstCase(String simpleName) {
-        char []chars = simpleName.toCharArray();
+        char[] chars = simpleName.toCharArray();
         chars[0] += 32;
         return String.valueOf(chars);
     }
@@ -154,7 +164,7 @@ public class MyDispatcherServlet extends HttpServlet {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if(is != null){
+            if (is != null) {
                 try {
                     is.close();
                 } catch (IOException e) {
@@ -165,17 +175,17 @@ public class MyDispatcherServlet extends HttpServlet {
     }
 
     private void doScanner(String scanPackage) {
-        URL url = this.getClass().getClassLoader().getResource("/"+scanPackage.replaceAll("\\.","/"));
+        URL url = this.getClass().getClassLoader().getResource("/" + scanPackage.replaceAll("\\.", "/"));
         File classPath = new File(url.getFile());
-        for(File file : classPath.listFiles()){
-            if(file.isDirectory()){
+        for (File file : classPath.listFiles()) {
+            if (file.isDirectory()) {
                 doScanner(scanPackage + "." + file.getName());
-            }else{
+            } else {
                 //拿这个类名反射，通过Class.forName
-                if(!file.getName().endsWith(".class")){
+                if (!file.getName().endsWith(".class")) {
                     continue;
                 }
-                String className = (scanPackage + "." + file.getName()).replaceAll(".class","");
+                String className = (scanPackage + "." + file.getName()).replaceAll(".class", "");
                 classNames.add(className);
             }
         }
@@ -184,38 +194,38 @@ public class MyDispatcherServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         //6，等待用户请求
-       try{
-           doDispatcher(req,resp);
-       } catch (Exception e){
-           e.printStackTrace();
-           resp.getWriter().write("500 : server error !");
-       }
+        try {
+            doDispatcher(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.getWriter().write("500 : server error !");
+        }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        doPost(req,resp);
+        doPost(req, resp);
     }
 
     private void doDispatcher(HttpServletRequest req, HttpServletResponse resp) throws IOException, InvocationTargetException, IllegalAccessException {
         String url = req.getRequestURI();
         String contextPath = req.getContextPath();
-        url = url.replaceAll(contextPath,"").replaceAll("/+","/");
+        url = url.replaceAll(contextPath, "").replaceAll("/+", "/");
 
-        if(!handllerMapping.containsKey(url)){
+        if (!handllerMapping.containsKey(url)) {
             resp.getWriter().write("404 : not found !");
             return;
         }
 
-        Map<String,String []> params = req.getParameterMap();
+        Map<String, String[]> params = req.getParameterMap();
 
         Method method = this.handllerMapping.get(url);
-        Parameter []parames = method.getParameters();
+        Parameter[] parames = method.getParameters();
         System.out.println(parames[0].getName());
         System.out.println(Arrays.toString(parames));
 
         String beanName = toLowerFirstCase(method.getDeclaringClass().getSimpleName());
-        Object o = method.invoke(ioc.get(beanName),req,resp);
+        Object o = method.invoke(ioc.get(beanName), req, resp);
         Writer writer = resp.getWriter();
         writer.write(o.toString());
         writer.flush();
@@ -229,9 +239,8 @@ public class MyDispatcherServlet extends HttpServlet {
 
     @Override
     public void destroy() {
-        System.out.println(9999);
+        System.out.println("MyDispatcherServlet销毁了");
     }
-    
 
 
 }
