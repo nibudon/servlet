@@ -220,12 +220,10 @@ public class MyDispatcherServlet extends HttpServlet {
         Map<String, String[]> params = req.getParameterMap();
 
         Method method = this.handllerMapping.get(url);
-        Parameter[] parames = method.getParameters();
-        System.out.println(parames[0].getName());
-        System.out.println(Arrays.toString(parames));
 
         String beanName = toLowerFirstCase(method.getDeclaringClass().getSimpleName());
         Object o = method.invoke(ioc.get(beanName), req, resp);
+        resp.setHeader("Content-type", "text/html;charset=UTF-8");
         Writer writer = resp.getWriter();
         writer.write(o.toString());
         writer.flush();

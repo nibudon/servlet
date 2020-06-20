@@ -20,4 +20,9 @@ public class HelloController {
         return "hello servlet !";
     }
 
+    @MyRequestMapping("/test.html")
+    public String test(HttpServletRequest request, HttpServletResponse response){
+        return "测试 !";
+    }
+
 }
